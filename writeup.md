@@ -35,11 +35,11 @@ The goals / steps of this project are the following:
 [image16]: ./writeup_pictures/draw-lane.png "Draw Lane"
 [image17]: ./writeup_pictures/draw-lane-with-description.png "Draw Lane With Description"
 [video1]: ./project_video.mp4 "Project Video"
-[video1]: ./project_video_output.mp4 "Project Video Output"
-[video1]: ./challenge_video.mp4 "Challenge Video"
-[video1]: ./challenge_video_output.mp4 "Challenge Video Output"
-[video1]: ./harder_challenge_video.mp4 "Harder Challenge Video"
-[video1]: ./harder_challenge_video_output.mp4 "Harder Challenge Video Output"
+[video2]: ./project_video_output.mp4 "Project Video Output"
+[video3]: ./challenge_video.mp4 "Challenge Video"
+[video4]: ./challenge_video_output.mp4 "Challenge Video Output"
+[video5]: ./harder_challenge_video.mp4 "Harder Challenge Video"
+[video6]: ./harder_challenge_video_output.mp4 "Harder Challenge Video Output"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -122,21 +122,49 @@ In the 24th code cell, I used the `find_lane()` to print all test image in the t
 
 #### 3. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-I used sliding window to identified lane-line pixels(function in the )
+I used sliding window to identified lane-line pixels and fit a 2nd order polynomial(function in the 25th code cell). The function calls `slid_window()`. First of this function computed the histogram of the bottom half of the image and found the `x` base position of left and right line. Then identifies ten windows from which to identify lane pixels. After that, I got the `left_fit`, `right_fit`, `left_lane_inds`, `right_lane_inds` and `out_img` result.
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+I used the first four parameters to fit lane line with 2nd order polynomial.
 
-![alt text][image5]
+The `out_img` is used for visualize the result. The result shows below:
+
+![alt text][image14]
+
+In the 27th code cell, I defined `fit_poly_prev()` function. This function calculate the new `left_fit`, `right_fit`, `left_lane_inds` and `right_lane_inds` by previous `left_fit` and `right_fit`. If the difference in fit coefficients between last and new fits is reasonable or last fits existed, even the pixels between new left fit and right fit were in the range(960 +/- 100), I used this function to calculate the fits. It's more effective because the function dp not use the sliding window. The example shows below:
+
+![alt text][image15]
 
 #### 4. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+I did this in 29th code cell. The camera image has 720 relevant pixels in the y-dimension, and 920 relevant pixels in the x-dimension. Therefore, to convert from pixels to real-world meter measurements, I use:
+
+```python
+# Define conversions in x and y from pixels space to meters
+ym_per_pix = 30 / 720  # meters per pixel in y dimension
+xm_per_pix = 3.7 / 920  # meters per pixel in x dimension
+```
+
+In order to calculate the position of the vehicle with respect to center, I got the `left_curverad` and `right_curverad` values within the newfrom the `measure_curvature_real()` function. The car position is the difference between these intercept points and the image midpoint (assuming that the camera is mounted at the center of the vehicle). First I calculated the `car_position` value which equals to half of the maximum x value(x equals to the width of the image). Then I calculated the value of x corresponding to the maximum value of the y-axis for left and right lane line. When I got `left_fit_x` and `right_fit_x`, the `lane_center_position` value can be calculated. At last, `center_dist`(means the position of the vehicle with respect to center) was equal to `car_position` minus `lane_center_position`. But the unit of result is pixels. Multiply it by the `xm_per_pix` to get the value in meters. 
+
+```python
+# Defint Car position
+car_position = binary_img.shape[1] / 2
+left_fit_x = left_fit[0] * binary_img.shape[0] ** 2 + left_fit[1] * binary_img.shape[0] + left_fit[2]
+right_fit_x = right_fit[0] * binary_img.shape[0] ** 2 + right_fit[1] * binary_img.shape[0] + right_fit[2]
+lane_center_position = (right_fit_x + left_fit_x) / 2
+center_dist = (car_position - lane_center_position) * xm_per_pix
+
+```
 
 #### 5. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+In the 31th code cell, I defined `draw_lane()` function to visual the polygon is generated based on plots of the left and right fits, warped back to the perspective of the original image using the inverse perspective matrix Minv and overlaid onto the original image. The image below is an example of the results:
 
-![alt text][image6]
+![alt text][image16]
+
+In the 33th code cell, I added the radius of curvature of the lane and the position of the vehicle with respect to center by the `description()` function.  The image below is an example of the results:
+
+![alt text][image17]
 
 ---
 
@@ -144,7 +172,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my project video result](./project_video_output.mp4)
 
 ---
 
@@ -152,4 +180,19 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+In the challenge project, it can be found that the algorithm for identifying lane lines is not robust enough. It is more evident in harder challenge. I used the methods highlighted in the course in my algorithm and the two kinds of color space. Even then, only the lane recognition in the project video can be completed. When the lane class is not used, problems occur even in the lane recognition of the project video. These problems occur mainly when the intensity of the lightness is particularly strong or when the shadow of the roadside trees suddenly appears. 
+When using the HLS color space, since the S-Channel is not affected by the lightness change. Therefore, the S-Channel was chosen, but the results show that using only the S-Channel does not completely solve this problem.
+Perhaps through other color spaces, or other methods can better solve the problem when the lightness is particularly large.
+This issue requires more in-depth exploration.
+
+The use of line class is still at an early stage and there is still much room for improvement.
+
+Below are the result of three videos:
+
+[Project video](./project_video_output.mp4)
+
+
+[Challenge video](./challenge_video_output.mp4)
+
+
+[Harder Challenge video](./harder_challenge_video_output.mp4)
